@@ -8,7 +8,11 @@ use TelegramBot\Api\BotApi;
 $bot = new BotApi('7553069380:AAGj2GMFAR3apnDf-9J4h_bLIFXa5aRmbzo');
 
 // مفتاح API لـ Spoonacular
-define('SPOONACULAR_API_KEY', '5db1f45e6750423fa4173d84da2cff82'); // استبدل بمفتاح API الخاص بك
+define('SPOONACULAR_API_KEY', '5db1f45e6750423fa4173d84da2cff82');
+
+// تعيين Webhook تلقائيًا
+$webhookUrl = "https://" . $_SERVER['HTTP_HOST'] . "/index.php";
+$bot->setWebhook($webhookUrl);
 
 // الحصول على آخر تحديثات الرسائل
 $input = file_get_contents('php://input');
