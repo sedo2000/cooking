@@ -1,18 +1,10 @@
 <?php
 
-require 'vendor/autoload.php';
-
-use TelegramBot\Api\BotApi;
-
 // استبدل 'YOUR_BOT_TOKEN' بالـ API Token الذي حصلت عليه من BotFather
-$bot = new BotApi('7553069380:AAGj2GMFAR3apnDf-9J4h_bLIFXa5aRmbzo');
+define('BOT_TOKEN', '7553069380:AAGj2GMFAR3apnDf-9J4h_bLIFXa5aRmbzo');
 
 // مفتاح API لـ Spoonacular
 define('SPOONACULAR_API_KEY', '5db1f45e6750423fa4173d84da2cff82');
-
-// تعيين Webhook تلقائيًا
-$webhookUrl = "https://" . $_SERVER['HTTP_HOST'] . "/index.php";
-$bot->setWebhook($webhookUrl);
 
 // الحصول على آخر تحديثات الرسائل
 $input = file_get_contents('php://input');
@@ -24,7 +16,7 @@ if (isset($data['message'])) {
 
     // الرد على الرسالة
     if ($text == '/start') {
-        $bot->sendMessage($chatId, "مرحبًا! أنا بوت الطبخ. 🍳\nأرسل لي المكونات التي لديك (مفصولة بفاصلة)، وسأقترح عليك بعض الوصفات.\nمثال: طماطم، بصل، لحم");
+        sendMessage($chatId, "مرحبًا! أنا بوت الطبخ. 🍳\nأرسل لي المكونات التي لديك (مفصولة بفاصلة)، وسأقترح عليك بعض الوصفات.\nمثال: طماطم، بصل، لحم");
     } else {
         // تقسيم المكونات المدخلة إلى مصفوفة
         $ingredients = array_map('trim', explode('،', $text)); // استخدام الفاصلة العربية "،" لفصل المكونات
@@ -46,8 +38,34 @@ if (isset($data['message'])) {
             $response .= "عذرًا، لم أجد وصفات تحتوي على هذه المكونات. 😢\nحاول إرسال مكونات أخرى.";
         }
 
-        $bot->sendMessage($chatId, $response, "Markdown");
+        sendMessage($chatId, $response);
     }
+}
+
+/**
+ * إرسال رسالة إلى المستخدم
+ *
+ * @param int $chatId معرف المحادثة
+ * @param string $text نص الرسالة
+ */
+function sendMessage($chatId, $text) {
+    $url = "https://api.telegram.org/bot" . BOT_TOKEN . "/sendMessage";
+    $postData = [
+        'chat_id' => $chatId,
+        'text' => $text,
+        'parse_mode' => 'Markdown'
+    ];
+
+    $options = [
+        'http' => [
+            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method'  => 'POST',
+            'content' => http_build_query($postData),
+        ],
+    ];
+
+    $context  = stream_context_create($options);
+    file_get_contents($url, false, $context);
 }
 
 /**
@@ -64,11 +82,12 @@ function searchRecipesOnline($ingredients) {
         'number' => 5 // عدد الوصفات التي تريد الحصول عليها
     ];
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $apiUrl . '?' . http_build_query($query));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $response = curl_exec($ch);
-    curl_close($ch);
+    $url = $apiUrl . '?' . http_build_query($query);
+    $response = file_get_contents($url);
+
+    if ($response === FALSE) {
+        return [];
+    }
 
     $data = json_decode($response, true);
 
